@@ -1,0 +1,16 @@
+# CodeRabbit設定ファイル
+# https://docs.coderabbit.ai/guides/configure-coderabbit
+
+# レビュー言語を日本語に設定
+language: ja-JP
+
+# レビューの詳細度
+reviews:
+  # 高レベルの要約を有効化
+  high_level_summary: true
+
+  # 詳細なレビューコメント
+  review_status: true
+
+  # 詩的な要約（オプション：オフにすることも可能）
+  poem: true

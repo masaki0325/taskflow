@@ -1,0 +1,199 @@
+# Docker Composeで管理するサービス一覧
+services:
+  # PostgreSQL 15 データベースサーバー
+  # ユーザー情報、タスク情報などを保存するメインデータベース
+  postgres:
+    # 使用するDockerイメージ (alpine版は軽量で起動が速い)
+    image: postgres:15-alpine
+
+    # コンテナ名を指定 (docker psで表示される名前)
+    container_name: taskflow_postgres
+
+    # コンテナが停止した場合の再起動ポリシー
+    # unless-stopped: 手動で停止しない限り自動再起動
+    restart: unless-stopped
+
+    # 環境変数の設定
+    # ${変数名:-デフォルト値} の形式で.envファイルから読み込む
+    # .envファイルはプロジェクトルートに配置する
+    # なければデフォルト値を使用
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-taskflow} # データベース名
+      POSTGRES_USER: ${POSTGRES_USER:-taskflow} # データベースユーザー名
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskflow_password} # パスワード
+
+    # ポートマッピング
+    # "ホストのポート:コンテナのポート"
+    # ホストの5432番ポートでPostgreSQLにアクセス可能
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    # ボリュームマウント (データの永続化)
+    # コンテナを削除してもデータが消えないようにする
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    # ヘルスチェック設定
+    # コンテナが正常に動作しているか定期的に確認
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taskflow}"] # PostgreSQLが準備完了か確認
+      interval: 10s # 10秒ごとにチェック
+      timeout: 5s # 5秒以内に応答がなければ失敗
+      retries: 5 # 5回失敗したら unhealthy と判定
+
+  # Redis 7 インメモリキャッシュサーバー
+  # セッション管理、キャッシュ、ジョブキューなどに使用
+  redis:
+    # Redisの公式イメージ (alpine版は軽量)
+    image: redis:7-alpine
+
+    # コンテナ名
+    container_name: taskflow_redis
+
+    # 再起動ポリシー
+    restart: unless-stopped
+
+    # ポートマッピング
+    # Redisのデフォルトポート6379をホストにも公開
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+    # データの永続化
+    # Redisのデータをボリュームに保存
+    volumes:
+      - redis_data:/data
+
+    # ヘルスチェック
+    # redis-cli pingコマンドでRedisが応答するか確認
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"] # PINGコマンドでPONGが返ってくるか確認
+      interval: 10s # 10秒ごとにチェック
+      timeout: 5s # 5秒以内に応答
+      retries: 5 # 5回失敗したら unhealthy
+
+  # FastAPI Backend (開発環境用)
+  # PythonのWebフレームワークFastAPIで構築したAPIサーバー
+  backend:
+    # イメージを既存のものではなく、Dockerfileからビルドする
+    build:
+      context: ./backend # ビルドコンテキスト (Dockerfileがあるディレクトリ)
+      dockerfile: Dockerfile # 使用するDockerfile名
+
+    # コンテナ名
+    container_name: taskflow_backend
+
+    # 再起動ポリシー
+    restart: unless-stopped
+
+    # 環境変数
+    # アプリケーションがこれらの環境変数を読み込んで動作する
+    environment:
+      # データベース接続URL
+      # postgresql://ユーザー名:パスワード@ホスト名:ポート/データベース名
+      # Docker内部では postgres というホスト名でPostgreSQLコンテナにアクセス可能
+      DATABASE_URL: postgresql://${POSTGRES_USER:-taskflow}:${POSTGRES_PASSWORD:-taskflow_password}@postgres:5432/${POSTGRES_DB:-taskflow}
+
+      # Redis接続URL
+      # redis://ホスト名:ポート/データベース番号
+      REDIS_URL: redis://redis:6379/0
+
+      # JWT認証用の秘密鍵
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+
+      # 実行環境 (development/staging/production)
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+
+      # CORS許可オリジン (カンマ区切りで複数指定可能)
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+
+    # ポートマッピング
+    # ホストの8000番ポートでAPIにアクセス可能
+    # http://localhost:8000 でアクセスできる
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+
+    # ボリュームマウント
+    volumes:
+      # ホストの./backendディレクトリをコンテナの/appにマウント
+      # コードを変更するとコンテナ内にも即座に反映される (ホットリロード)
+      - ./backend:/app
+
+      # Pythonのキャッシュファイルはコンテナ内に保持
+      # ホストとコンテナでPythonバージョンが違っても問題が起きないようにする
+      - /app/__pycache__
+
+    # 依存関係の設定
+    # postgresとredisが正常に起動してから起動する
+    depends_on:
+      postgres:
+        condition: service_healthy # PostgreSQLが起動してから起動する
+      redis:
+        condition: service_healthy # Redisが起動してから起動する
+
+    # コンテナ起動時に実行するコマンド
+    # uvicorn: PythonのASGIサーバー (FastAPIを動かすためのサーバー)
+    # app.main:app: app/main.pyファイルのappオブジェクトを起動
+    # --host 0.0.0.0: すべてのネットワークインターフェースでリッスン
+    # --port 8000: 8000番ポートで起動
+    # --reload: ファイル変更時に自動でサーバーを再起動 (開発用)
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Next.js Frontend (開発環境用)
+  # React 19 + TypeScript + Tailwind CSSで構築したフロントエンド
+  frontend:
+    # イメージをDockerfileからビルド
+    build:
+      context: ./frontend # ビルドコンテキスト (Dockerfileがあるディレクトリ)
+      dockerfile: Dockerfile # 使用するDockerfile名
+      target: dev # 開発環境用のステージを指定
+
+    # コンテナ名
+    container_name: taskflow_frontend
+
+    # 再起動ポリシー
+    restart: unless-stopped
+
+    # 環境変数
+    environment:
+      # バックエンドAPIのURL
+      # Docker内部では backend というホスト名でバックエンドコンテナにアクセス可能
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+
+      # Node.js環境
+      NODE_ENV: development
+
+    # ポートマッピング
+    # ホストの3000番ポートでフロントエンドにアクセス可能
+    # http://localhost:3000 でアクセスできる
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
+    # ボリュームマウント
+    volumes:
+      # ホストの./frontendディレクトリをコンテナの/appにマウント
+      # コードを変更するとコンテナ内にも即座に反映される (ホットリロード)
+      - ./frontend:/app
+
+      # node_modules はコンテナ内に保持
+      # ホストとコンテナでNode.jsバージョンが違っても問題が起きないようにする
+      - /app/node_modules
+
+      # .next ビルドキャッシュもコンテナ内に保持
+      - /app/.next
+
+    # 依存関係の設定
+    # バックエンドが起動してから起動する（必須ではないがAPIを使う場合は便利）
+    depends_on:
+      backend:
+        condition: service_started # バックエンドが起動したら起動
+
+# 名前付きボリューム定義
+# データを永続化するためのストレージ領域を定義
+volumes:
+  # PostgreSQLのデータを保存するボリューム
+  postgres_data:
+    driver: local # ローカルのディスクに保存
+
+  # Redisのデータを保存するボリューム
+  redis_data:
+    driver: local # ローカルのディスクに保存

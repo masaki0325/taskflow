@@ -43,13 +43,72 @@ taskflow/
 - ✅ 通知機能
 - ✅ ダッシュボード（統計）
 
+## セキュリティ
+
+- JWT認証によるセキュアなAPI
+- パスワードハッシュ化（bcrypt）
+- CORS設定
+
 ## セットアップ
 
-詳細は `docs/SETUP.md` を参照
+### 前提条件
+
+- Docker & Docker Compose
+- Python 3.12+
+- Node.js 18+
+- Flutter 3.x
+
+### 開発環境の起動
+
+1. リポジトリをクローン
+```bash
+git clone <repository-url>
+cd taskflow
+```
+
+2. 環境変数を設定
+```bash
+cp .env.example .env
+# .envファイルを編集して適切な値を設定
+```
+
+3. Dockerコンテナを起動
+```bash
+docker-compose up -d
+```
+
+4. バックエンドAPIの確認
+```bash
+# APIドキュメント
+open http://localhost:8000/docs
+```
+
+5. データベースマイグレーション
+```bash
+docker-compose exec backend alembic upgrade head
+```
+
+### コンテナの停止
+
+```bash
+docker-compose down
+```
+
+### ログの確認
+
+```bash
+# すべてのサービスのログ
+docker-compose logs -f
+
+# 特定のサービスのログ
+docker-compose logs -f backend
+docker-compose logs -f postgres
+docker-compose logs -f redis
+```
 
 ## 開発状況
 
-- [ ] Week 1-2: 環境構築 & バックエンド基礎
+- [x] Week 1-2: 環境構築 & Docker setup
 - [ ] Week 3-4: 認証API実装
 - [ ] Week 5-6: タスク管理API実装
 - [ ] Week 7-8: フロントエンド - 認証画面
