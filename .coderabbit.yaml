@@ -14,25 +14,3 @@ reviews:
 
   # 詩的な要約（オプション：オフにすることも可能）
   poem: true
-
-  # コードの品質チェック
-  tools:
-    # セキュリティ脆弱性チェック
-    security: true
-
-    # パフォーマンスの問題
-    performance: true
-
-    # ベストプラクティス
-    best_practices: true
-
-# 自動レビューの設定
-auto_review:
-  enabled: true
-
-  # 特定のファイルを除外（必要に応じて調整）
-  exclude:
-    - "*.md"
-    - "*.txt"
-    - "package-lock.json"
-    - "yarn.lock"
