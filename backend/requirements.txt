@@ -12,7 +12,8 @@
 # ------------------------------------------------------------
 # FastAPI: 高速で使いやすいPythonのWebフレームワーク
 # 特徴: 自動ドキュメント生成、型ヒント、非同期対応
-fastapi==0.109.0
+# セキュリティアップデート: 0.109.0 → 0.128.0
+fastapi==0.128.0
 
 # uvicorn: FastAPIを動かすASGIサーバー
 # [standard]: Websocketや高速化機能を含む標準版
@@ -20,7 +21,8 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 
 # python-multipart: ファイルアップロード（FormData）の処理に必要
-python-multipart==0.0.6
+# セキュリティアップデート: 0.0.6 → 0.0.21 (ReDoS脆弱性修正)
+python-multipart==0.0.21
 
 # ------------------------------------------------------------
 # データベース - PostgreSQLとの連携
@@ -56,7 +58,8 @@ redis==5.0.1
 # python-jose: JWTトークンの生成と検証
 # [cryptography]: 暗号化機能を含む
 # JWT = ログイン状態を安全に保存するトークン
-python-jose[cryptography]==3.3.0
+# セキュリティアップデート: 3.3.0 → 3.5.0 (JWT処理の脆弱性修正)
+python-jose[cryptography]==3.5.0
 
 # passlib: パスワードのハッシュ化（暗号化）
 # [bcrypt]: bcryptアルゴリズムを使用（セキュアなハッシュ方式）
@@ -73,7 +76,8 @@ python-dotenv==1.0.0
 # Pydantic: データの型チェックとバリデーション
 # FastAPIのリクエスト・レスポンスの型定義に使用
 # 例: class User(BaseModel): email: str, age: int
-pydantic==2.5.3
+# アップデート: 2.5.3 → 2.12.5 (FastAPI 0.128.0 の要件)
+pydantic==2.12.5
 
 # pydantic-settings: 環境変数を型安全に読み込む
 # 例: DATABASE_URL を自動的に読み込んで検証

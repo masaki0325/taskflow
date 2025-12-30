@@ -9,11 +9,8 @@ from fastapi import FastAPI
 # フロントエンド (Next.js) からAPIへのアクセスを許可するために必要
 from fastapi.middleware.cors import CORSMiddleware
 
-# 非同期コンテキストマネージャー (将来的にDB接続やRedis接続の管理に使用)
-from contextlib import asynccontextmanager
-
-# Redis の非同期クライアント (キャッシュ、セッション管理などに使用)
-import redis.asyncio as redis
+# 環境変数の読み込み
+import os
 
 
 # ============================================================
@@ -37,9 +34,13 @@ app = FastAPI(
 # フロントエンド (ブラウザ) から異なるドメインのAPIにアクセスする際に必要
 # 例: フロントエンド (localhost:3000) → バックエンド (localhost:8000)
 
+# 環境変数からCORS許可オリジンを取得
+# 複数のオリジンをカンマ区切りで指定可能 (例: "http://localhost:3000,https://app.example.com")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,                              # CORSミドルウェアを追加
-    allow_origins=["http://localhost:3000"],     # アクセスを許可するオリジン (Next.js開発サーバー)
+    allow_origins=ALLOWED_ORIGINS,               # アクセスを許可するオリジン（環境変数から設定）
     allow_credentials=True,                      # Cookie、認証ヘッダーの送信を許可
     allow_methods=["*"],                         # すべてのHTTPメソッドを許可 (GET, POST, PUT, DELETE など)
     allow_headers=["*"],                         # すべてのHTTPヘッダーを許可

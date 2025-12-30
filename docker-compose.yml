@@ -103,6 +103,9 @@ services:
       # 実行環境 (development/staging/production)
       ENVIRONMENT: ${ENVIRONMENT:-development}
 
+      # CORS許可オリジン (カンマ区切りで複数指定可能)
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+
     # ポートマッピング
     # ホストの8000番ポートでAPIにアクセス可能
     # http://localhost:8000 でアクセスできる

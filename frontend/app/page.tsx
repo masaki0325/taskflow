@@ -1,4 +1,9 @@
+"use client";
+
 export default function Home() {
+  // 環境変数からAPI URLを取得
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <main className="text-center px-4">
@@ -51,7 +56,7 @@ export default function Home() {
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-gray-600 mb-4">APIドキュメント:</p>
             <a
-              href="http://localhost:8000/docs"
+              href={`${apiUrl}/docs`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
