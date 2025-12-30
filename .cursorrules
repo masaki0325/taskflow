@@ -1,0 +1,243 @@
+# TaskFlow - Cursor AI Rules
+
+## 🎯 プロジェクト概要
+タスク管理SaaS
+- Frontend: Next.js 15 + TypeScript
+- Backend: FastAPI + Python 3.12
+- Mobile: Flutter
+- Infrastructure: AWS CDK
+
+## 📝 コードレビューの基準
+
+### コミット前のチェックリスト
+コードをコミットする前に、以下を必ず確認してください：
+
+1. **セキュリティ**
+   - SQLインジェクション対策（ORMの適切な使用）
+   - XSS対策（入力のサニタイズ）
+   - 認証・認可の適切な実装
+   - 秘密情報のハードコード禁止
+   - パスワードのハッシュ化（bcrypt）
+
+2. **エラーハンドリング**
+   - try-catch の適切な使用
+   - HTTPエラーレスポンスの明確化
+   - エッジケースの処理
+   - ユーザーフレンドリーなエラーメッセージ
+
+3. **パフォーマンス**
+   - N+1クエリの回避
+   - データベースインデックスの使用
+   - 不要なAPI呼び出しの削減
+   - キャッシング（Redis）の活用
+
+4. **コード品質**
+   - 型ヒントの使用（Python、TypeScript）
+   - 関数の単一責任原則
+   - DRY原則（重複コードの排除）
+   - 適切な命名（英語、意味のある名前）
+
+5. **テスト**
+   - 新機能には必ずテストを追加
+   - エッジケースのテスト
+   - テストカバレッジ80%以上を目標
+
+## 🔍 レビュー指示
+
+### コミット前レビューの実行方法
+```
+1. Cursor Composer を開く（Cmd+I または Cmd+Shift+I）
+2. 以下のプロンプトを使用：
+
+"変更したファイルをレビューしてください。
+以下の観点でチェック：
+- セキュリティ脆弱性
+- エラーハンドリング
+- パフォーマンス問題
+- コード品質
+- ベストプラクティス違反
+
+問題があれば具体的に指摘し、修正案を提示してください。"
+```
+
+## 🐍 Python（FastAPI）固有ルール
+
+### 必須
+- 型ヒントを全ての関数に追加
+- Pydantic スキーマでバリデーション
+- async/await を適切に使用
+- SQLAlchemy の ORM を使用（生SQLは禁止）
+- パスワードは必ず bcrypt でハッシュ化
+
+### 禁止
+- `SELECT * FROM ...` のような生SQL
+- パスワードの平文保存
+- グローバル変数の濫用
+- 例外の無視（bare except）
+
+### コード例
+```python
+# ✅ Good
+from pydantic import BaseModel
+from typing import Optional
+
+async def get_task(task_id: str) -> Optional[Task]:
+    task = await db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+# ❌ Bad
+def get_task(task_id):
+    task = db.execute(f"SELECT * FROM tasks WHERE id = {task_id}")
+    return task
+```
+
+## 📘 TypeScript（Next.js）固有ルール
+
+### 必須
+- 全ての変数・関数に型定義
+- React Hook Form + Zod でバリデーション
+- useEffect の依存配列を明示
+- エラーバウンダリの実装
+- shadcn/ui コンポーネントの使用
+
+### 禁止
+- `any` 型の使用
+- `console.log` の本番コードへの残存
+- インラインスタイル（TailwindCSS使用）
+- 直接的なDOM操作
+
+### コード例
+```typescript
+// ✅ Good
+interface Task {
+  id: string;
+  title: string;
+  status: 'todo' | 'in_progress' | 'done';
+}
+
+const fetchTasks = async (): Promise<Task[]> => {
+  try {
+    const response = await api.get<Task[]>('/tasks');
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to fetch tasks');
+  }
+};
+
+// ❌ Bad
+const fetchTasks = async () => {
+  const response = await api.get('/tasks');
+  return response.data;
+};
+```
+
+## 🎨 Flutter（Dart）固有ルール
+
+### 必須
+- Riverpod で状態管理
+- Freezed で immutable モデル
+- 型安全性の維持
+- エラーハンドリング（try-catch）
+
+### 禁止
+- StatefulWidget の濫用（Riverpod優先）
+- mutable な状態
+- `dynamic` 型の使用
+
+## 📦 Git コミットルール
+
+### コミットメッセージフォーマット
+```
+<type>: <subject>
+
+<body>
+
+🤖 Generated with Claude Code
+```
+
+### Type
+- `feat`: 新機能
+- `fix`: バグ修正
+- `refactor`: リファクタリング
+- `docs`: ドキュメント
+- `test`: テスト追加
+- `chore`: 雑務（依存関係更新等）
+
+### 例
+```
+feat: Add task comments API
+
+- Implement POST /tasks/{id}/comments
+- Implement DELETE /comments/{id}
+- Add Comment model and schema
+- Add tests for comment endpoints
+
+🤖 Generated with Claude Code
+```
+
+## 🚨 絶対に避けるべきこと
+
+1. **秘密情報のコミット**
+   - パスワード、APIキー、秘密鍵
+   - .env ファイル（.env.example のみOK）
+
+2. **大きなファイルのコミット**
+   - node_modules/
+   - venv/
+   - ビルド成果物
+
+3. **破壊的変更**
+   - 本番DBへの直接接続
+   - マイグレーションの削除
+   - 既存APIの互換性破壊
+
+## 💡 レビュー時の質問リスト
+
+コミット前に自問自答：
+
+1. このコードはセキュアか？
+2. エラーハンドリングは十分か？
+3. パフォーマンス問題はないか？
+4. テストは書いたか？
+5. 他の開発者が理解できるか？
+6. ドキュメントは更新したか？
+7. 後で自分が見て理解できるか？
+
+## 🎯 Cursor Composer 活用
+
+### レビュー依頼のプロンプトテンプレート
+
+#### 基本レビュー
+```
+変更したファイルをレビューしてください。
+セキュリティ、エラーハンドリング、パフォーマンス、
+コード品質の観点でチェックし、問題があれば修正案を提示してください。
+```
+
+#### 詳細レビュー
+```
+以下のファイルを.cursorrulesのチェックリストに基づいてレビューしてください：
+[ファイル名をリスト]
+
+特に以下を重点的にチェック：
+1. セキュリティ脆弱性（SQLインジェクション、XSS等）
+2. エッジケースの処理
+3. 型安全性
+4. パフォーマンス問題（N+1クエリ等）
+5. ベストプラクティス違反
+
+各問題について：
+- 問題の説明
+- 深刻度（Critical/High/Medium/Low）
+- 修正案のコード
+
+最後に、コミット可能かどうかの判定をください。
+```
+
+#### 特定の観点のみ
+```
+このAPIエンドポイントをセキュリティの観点でレビューしてください。
+SQLインジェクション、認証・認可、入力バリデーションを重点的にチェック。
+```
