@@ -1,6 +1,6 @@
 # TaskFlow プロジェクト - Claude 開発ガイド
 
-このファイルは、TaskFlow プロジェクトでの開発時にClaude Codeが従うべきルールと指針を定義します。
+このファイルは、TaskFlow プロジェクトでの開発時にClaude Codeが従うべき全体的なルールと指針を定義します。
 
 ## 📋 プロジェクト概要
 
@@ -56,186 +56,21 @@
 
 ---
 
-## 🎯 コーディング規約
+## 🎯 全般的なコーディング方針
 
-### 全般的な方針
+### 開発原則
 - **品質優先**: 動くコードではなく、保守可能なコードを書く
 - **セキュリティファースト**: 脆弱性を作らない（SQL injection, XSS, CSRF等）
 - **型安全**: TypeScript, Python共に型ヒントを必ず使用
 - **ドキュメント**: 複雑なロジックにはコメントを残す
 - **テスト**: 重要な機能には必ずテストを書く
 
-### Python (FastAPI) コーディング規約
+### 詳細なコーディング規約
 
-```python
-# ✅ Good: 型ヒント、docstring、明確な命名
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+各技術スタックの詳細なコーディング規約は以下を参照：
 
-class UserCreate(BaseModel):
-    """ユーザー登録リクエストのスキーマ"""
-    email: EmailStr
-    password: str
-    username: str
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "email": "user@example.com",
-                "password": "SecurePass123!",
-                "username": "john_doe"
-            }
-        }
-
-async def create_user(
-    user_data: UserCreate,
-    db: Session = Depends(get_db)
-) -> User:
-    """
-    新しいユーザーを作成する
-
-    Args:
-        user_data: ユーザー登録情報
-        db: データベースセッション
-
-    Returns:
-        作成されたユーザーオブジェクト
-
-    Raises:
-        HTTPException: メールアドレスが既に登録済みの場合
-    """
-    # パスワードをハッシュ化（平文保存は絶対NG）
-    hashed_password = get_password_hash(user_data.password)
-
-    db_user = User(
-        email=user_data.email,
-        hashed_password=hashed_password,
-        username=user_data.username
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-
-    return db_user
-```
-
-### TypeScript (Next.js) コーディング規約
-
-```typescript
-// ✅ Good: 型定義、エラーハンドリング、明確な責務分離
-
-// 型定義ファイル (types/task.ts)
-export interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  status: 'todo' | 'in_progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
-  dueDate?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface CreateTaskRequest {
-  title: string;
-  description?: string;
-  priority: Task['priority'];
-  dueDate?: string;
-}
-
-// APIクライアント (lib/api/tasks.ts)
-export async function createTask(
-  data: CreateTaskRequest
-): Promise<Task> {
-  try {
-    const response = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to create task: ${response.statusText}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error creating task:', error);
-    throw error;
-  }
-}
-```
-
-### ディレクトリ構成
-
-```
-backend/
-├── app/
-│   ├── main.py                  # FastAPIアプリのエントリーポイント
-│   ├── core/                    # コア機能（設定、セキュリティ）
-│   │   ├── config.py           # 環境変数、設定
-│   │   ├── security.py         # JWT、パスワードハッシュ
-│   │   └── database.py         # DB接続
-│   ├── models/                  # SQLAlchemyモデル（DBテーブル定義）
-│   │   ├── user.py
-│   │   ├── task.py
-│   │   └── project.py
-│   ├── schemas/                 # Pydanticスキーマ（バリデーション）
-│   │   ├── user.py
-│   │   ├── task.py
-│   │   └── token.py
-│   ├── api/                     # APIルート
-│   │   ├── deps.py             # 依存性注入（認証チェック等）
-│   │   └── v1/
-│   │       ├── auth.py         # 認証エンドポイント
-│   │       ├── users.py        # ユーザー管理
-│   │       ├── tasks.py        # タスク管理
-│   │       └── projects.py     # プロジェクト管理
-│   ├── crud/                    # CRUD操作（DB操作ロジック）
-│   │   ├── user.py
-│   │   ├── task.py
-│   │   └── project.py
-│   └── tests/                   # テスト
-│       ├── test_auth.py
-│       ├── test_tasks.py
-│       └── conftest.py
-├── alembic/                     # DBマイグレーション
-├── requirements.txt
-└── Dockerfile
-
-frontend/
-├── app/                         # Next.js App Router
-│   ├── layout.tsx              # ルートレイアウト
-│   ├── page.tsx                # ホームページ
-│   ├── (auth)/                 # 認証関連ページ
-│   │   ├── login/
-│   │   └── register/
-│   └── (dashboard)/            # ダッシュボード（認証必須）
-│       ├── tasks/
-│       ├── projects/
-│       └── settings/
-├── components/                  # 再利用可能なコンポーネント
-│   ├── ui/                     # shadcn/ui コンポーネント
-│   ├── TaskCard.tsx
-│   ├── TaskList.tsx
-│   └── Header.tsx
-├── lib/                         # ユーティリティ
-│   ├── api/                    # APIクライアント
-│   │   ├── client.ts          # 共通HTTPクライアント
-│   │   ├── auth.ts
-│   │   └── tasks.ts
-│   ├── hooks/                  # カスタムフック
-│   │   ├── useAuth.ts
-│   │   └── useTasks.ts
-│   └── utils.ts                # ヘルパー関数
-├── types/                       # 型定義
-│   ├── task.ts
-│   ├── user.ts
-│   └── api.ts
-└── public/                      # 静的ファイル
-```
+- **バックエンド（FastAPI）**: [backend.md](./backend.md)
+- **フロントエンド（Next.js）**: [frontend.md](./frontend.md)
 
 ---
 
@@ -333,57 +168,6 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 
 ---
 
-## 🧪 テスト方針
-
-### バックエンド（pytest）
-
-```python
-# tests/test_auth.py
-def test_user_registration(client: TestClient):
-    """ユーザー登録が正常に動作することを確認"""
-    response = client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": "test@example.com",
-            "password": "SecurePass123!",
-            "username": "testuser"
-        }
-    )
-    assert response.status_code == 201
-    data = response.json()
-    assert data["email"] == "test@example.com"
-    assert "password" not in data  # パスワードを返さない
-```
-
-### フロントエンド（Jest + React Testing Library）
-
-```typescript
-// __tests__/components/TaskCard.test.tsx
-import { render, screen } from '@testing-library/react';
-import TaskCard from '@/components/TaskCard';
-
-describe('TaskCard', () => {
-  it('renders task title and description', () => {
-    const task = {
-      id: '1',
-      title: 'Test Task',
-      description: 'Test Description',
-      status: 'todo' as const,
-      priority: 'high' as const,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    render(<TaskCard task={task} />);
-
-    expect(screen.getByText('Test Task')).toBeInTheDocument();
-    expect(screen.getByText('Test Description')).toBeInTheDocument();
-  });
-});
-```
-
----
-
 ## 📝 開発時の注意事項
 
 ### 環境変数の管理
@@ -395,17 +179,6 @@ git add .env  # 機密情報を含む.envをコミット
 # ✅ 正しい方法
 # .env.example をコミット（サンプル値のみ）
 # .env は .gitignore に追加済み
-```
-
-### データベースマイグレーション
-
-```bash
-# 新しいモデルを追加したら必ずマイグレーション作成
-alembic revision --autogenerate -m "Add tasks table"
-alembic upgrade head
-
-# マイグレーションファイルは必ずレビューする
-# （autogenerateが完璧とは限らない）
 ```
 
 ### API設計
@@ -440,24 +213,17 @@ DELETE /api/v1/tasks/{id}     タスク削除
 1. ブランチ作成
    git checkout -b feature/new-feature
 
-2. バックエンド実装
-   ├─ モデル作成（models/）
-   ├─ スキーマ作成（schemas/）
-   ├─ CRUD作成（crud/）
-   ├─ API作成（api/v1/）
-   └─ テスト作成（tests/）
+2. 実装
+   ├─ バックエンド: backend.md を参照
+   └─ フロントエンド: frontend.md を参照
 
-3. フロントエンド実装
-   ├─ 型定義（types/）
-   ├─ APIクライアント（lib/api/）
-   ├─ コンポーネント（components/）
-   ├─ ページ（app/）
-   └─ テスト（__tests__/）
-
-4. 動作確認
+3. 動作確認
    docker-compose up
    http://localhost:3000
    http://localhost:8000/docs
+
+4. CodeRabbitのローカルレビューを確認
+   Cursorのextensionで自動レビュー
 
 5. コミット & プッシュ
    git add .
