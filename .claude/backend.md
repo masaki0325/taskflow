@@ -4,7 +4,7 @@
 
 ## 技術スタック
 
-```
+```text
 FastAPI + Python 3.12
 ├── FastAPI         API Framework
 ├── SQLAlchemy 2.0  ORM
@@ -20,7 +20,7 @@ FastAPI + Python 3.12
 
 ## ディレクトリ構成
 
-```
+```text
 backend/
 ├── app/
 │   ├── main.py              # FastAPIアプリのエントリーポイント

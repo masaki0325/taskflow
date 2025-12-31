@@ -4,7 +4,7 @@
 
 ## 技術スタック
 
-```
+```text
 Next.js 15 + TypeScript
 ├── Next.js 15       React Framework (App Router)
 ├── TypeScript       型安全な開発
@@ -19,7 +19,7 @@ Next.js 15 + TypeScript
 
 ## ディレクトリ構成
 
-```
+```text
 frontend/
 ├── app/                    # Next.js App Router
 │   ├── (auth)/            # 認証ページ（login, register）

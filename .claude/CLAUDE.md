@@ -16,7 +16,7 @@
 
 ### 技術スタック全体図
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                   クライアント                       │
 ├──────────────────────┬──────────────────────────────┤
@@ -78,7 +78,7 @@
 
 ### 必須のセキュリティ対策
 
-```
+```text
 ┌─────────────────────────────────────────────┐
 │  脅威               対策                     │
 ├─────────────────────────────────────────────┤
@@ -106,7 +106,7 @@
 - 平文保存は絶対禁止
 
 ### JWT トークン管理
-```
+```text
 Access Token:  有効期限15分（短命）
 Refresh Token: 有効期限7日（長命）
                Redis/DBで管理、ログアウト時に無効化
@@ -118,7 +118,7 @@ Refresh Token: 有効期限7日（長命）
 
 ### ブランチ戦略
 
-```
+```text
 main
   │
   ├── feature/auth-api          ← 認証API実装
@@ -134,7 +134,7 @@ main
 
 ### コミットメッセージ規則
 
-```
+```text
 <type>: <subject>
 
 <body>
@@ -153,7 +153,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 - `test`: テスト追加
 
 **例:**
-```
+```text
 feat: Implement user authentication with JWT
 
 - Add login/register endpoints
@@ -183,7 +183,7 @@ git add .env  # 機密情報を含む.envをコミット
 
 ### API設計
 
-```
+```text
 RESTful API設計原則:
 
 GET    /api/v1/tasks          タスク一覧取得
@@ -209,7 +209,7 @@ DELETE /api/v1/tasks/{id}     タスク削除
 
 ### 新機能開発の流れ
 
-```
+```text
 1. ブランチ作成
    git checkout -b feature/new-feature
 
@@ -218,7 +218,7 @@ DELETE /api/v1/tasks/{id}     タスク削除
    └─ フロントエンド: frontend.md を参照
 
 3. 動作確認
-   docker-compose up
+   docker compose up
    http://localhost:3000
    http://localhost:8000/docs
 
