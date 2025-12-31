@@ -19,7 +19,7 @@ TaskFlowプロジェクト全体のセキュリティ脆弱性を徹底的にチ
 
 ## セキュリティチェック項目
 
-### 🔐 認証・認可
+### 認証・認可
 
 **バックエンド（FastAPI）**:
 - [ ] パスワードがbcryptでハッシュ化されているか
@@ -40,7 +40,7 @@ TaskFlowプロジェクト全体のセキュリティ脆弱性を徹底的にチ
 - `frontend/lib/api/client.ts`
 - `frontend/lib/context/AuthContext.tsx`
 
-### 💉 インジェクション攻撃対策
+### インジェクション攻撃対策
 
 **SQL Injection**:
 - [ ] 生SQLを使っていないか（必ずSQLAlchemy ORMを使用）
@@ -60,7 +60,7 @@ TaskFlowプロジェクト全体のセキュリティ脆弱性を徹底的にチ
 - `frontend/components/**/*.tsx`（XSS）
 - `backend/app/**/*.py`（コマンドインジェクション）
 
-### 🔒 データ保護
+### データ保護
 
 **環境変数・機密情報**:
 - [ ] `.env`ファイルが`.gitignore`に含まれているか
@@ -77,7 +77,7 @@ TaskFlowプロジェクト全体のセキュリティ脆弱性を徹底的にチ
 - `backend/app/core/config.py`
 - `backend/app/models/*.py`
 
-### 🌐 CORS設定
+### CORS設定
 
 - [ ] 本番環境で`allow_origins=["*"]`になっていないか
 - [ ] 許可するオリジンが環境変数で管理されているか
@@ -87,7 +87,7 @@ TaskFlowプロジェクト全体のセキュリティ脆弱性を徹底的にチ
 - `backend/app/main.py`（CORSMiddleware設定）
 - `.env.example`（ALLOWED_ORIGINS）
 
-### 🔐 依存関係の脆弱性
+### 依存関係の脆弱性
 
 - [ ] `requirements.txt`の依存関係に既知の脆弱性がないか
 - [ ] `package.json`の依存関係に既知の脆弱性がないか
@@ -97,7 +97,7 @@ TaskFlowプロジェクト全体のセキュリティ脆弱性を徹底的にチ
 - `backend/requirements.txt`を確認
 - `frontend/package.json`を確認
 
-### 📝 ログ・エラーメッセージ
+### ログ・エラーメッセージ
 
 - [ ] エラーメッセージに機密情報が含まれていないか
 - [ ] スタックトレースが本番環境で表示されていないか
@@ -106,7 +106,7 @@ TaskFlowプロジェクト全体のセキュリティ脆弱性を徹底的にチ
 **チェック対象**:
 - `backend/app/api/v1/*.py`（エラーレスポンス）
 
-### 🚪 認可（Authorization）
+### 認可（Authorization）
 
 - [ ] ユーザーが他人のデータにアクセスできないか
 - [ ] 管理者権限のチェックが適切か
@@ -139,21 +139,21 @@ def get_task(
 
 以下の形式で報告してください:
 
-### 🔴 Critical（重大な脆弱性 - 即座に修正が必要）
+### Critical（重大な脆弱性 - 即座に修正が必要）
 - ファイル名:行番号
 - 脆弱性の種類
 - 具体的な問題
 - 修正案（コード例付き）
 
-### 🟡 Warning（警告 - 改善推奨）
+### Warning（警告 - 改善推奨）
 - ファイル名:行番号
 - 潜在的なリスク
 - 改善案
 
-### 🟢 Secure（セキュアな実装）
+### Secure（セキュアな実装）
 - 評価できるセキュリティ対策
 
-### 📊 セキュリティスコア
+### セキュリティスコア
 - チェック項目数 / 合格項目数
 - 総合評価（A〜F）
 

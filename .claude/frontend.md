@@ -2,7 +2,7 @@
 
 このファイルは、TaskFlow のフロントエンド開発における詳細なルールとベストプラクティスを定義します。
 
-## 📦 技術スタック
+## 技術スタック
 
 ```
 Next.js 15 + TypeScript
@@ -17,7 +17,7 @@ Next.js 15 + TypeScript
 
 ---
 
-## 🗂️ ディレクトリ構成
+## ディレクトリ構成
 
 ```
 frontend/
@@ -116,7 +116,7 @@ frontend/
 
 ---
 
-## 🎯 コーディング規約
+## コーディング規約
 
 ### 1. 型定義（types/）
 
@@ -137,13 +137,13 @@ export type TaskPriority = "low" | "medium" | "high";
  * タスクのベース型
  */
 export interface Task {
-  id: string;
+  id: number;
   title: string;
   description?: string;
   status: TaskStatus;
   priority: TaskPriority;
   dueDate?: Date;
-  projectId?: string;
+  projectId?: number;
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -241,7 +241,7 @@ export async function getTasks(): Promise<Task[]> {
 /**
  * タスク詳細を取得
  */
-export async function getTask(id: string): Promise<Task> {
+export async function getTask(id: number): Promise<Task> {
   return fetchAPI<Task>(`/api/v1/tasks/${id}`);
 }
 
@@ -259,7 +259,7 @@ export async function createTask(data: CreateTaskRequest): Promise<Task> {
  * タスクを更新
  */
 export async function updateTask(
-  id: string,
+  id: number,
   data: UpdateTaskRequest
 ): Promise<Task> {
   return fetchAPI<Task>(`/api/v1/tasks/${id}`, {
@@ -271,7 +271,7 @@ export async function updateTask(
 /**
  * タスクを削除
  */
-export async function deleteTask(id: string): Promise<void> {
+export async function deleteTask(id: number): Promise<void> {
   return fetchAPI<void>(`/api/v1/tasks/${id}`, {
     method: "DELETE",
   });
@@ -304,7 +304,55 @@ export function useTasks(): UseTasksReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchTasks = async () => {
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTasks = async () => {
+      setLoading(true);
+      try {
+        const data = await getTasks();
+        if (!cancelled) {
+          setTasks(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err as Error);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadTasks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const create = async (data: CreateTaskRequest): Promise<Task> => {
+    const newTask = await createTask(data);
+    setTasks((prev) => [newTask, ...prev]);
+    return newTask;
+  };
+
+  const update = async (id: number, data: UpdateTaskRequest): Promise<Task> => {
+    const updatedTask = await updateTask(id, data);
+    setTasks((prev) =>
+      prev.map((task) => (task.id === id ? updatedTask : task))
+    );
+    return updatedTask;
+  };
+
+  const remove = async (id: number): Promise<void> => {
+    await deleteTask(id);
+    setTasks((prev) => prev.filter((task) => task.id !== id));
+  };
+
+  const refetch = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -317,34 +365,11 @@ export function useTasks(): UseTasksReturn {
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const create = async (data: CreateTaskRequest): Promise<Task> => {
-    const newTask = await createTask(data);
-    setTasks((prev) => [newTask, ...prev]);
-    return newTask;
-  };
-
-  const update = async (id: string, data: UpdateTaskRequest): Promise<Task> => {
-    const updatedTask = await updateTask(id, data);
-    setTasks((prev) =>
-      prev.map((task) => (task.id === id ? updatedTask : task))
-    );
-    return updatedTask;
-  };
-
-  const remove = async (id: string): Promise<void> => {
-    await deleteTask(id);
-    setTasks((prev) => prev.filter((task) => task.id !== id));
-  };
-
   return {
     tasks,
     loading,
     error,
-    refetch: fetchTasks,
+    refetch,
     create,
     update,
     remove,
@@ -483,7 +508,7 @@ export default function TasksPage() {
 
 ---
 
-## 🧪 テスト
+## テスト
 
 ### コンポーネントテスト
 
@@ -531,7 +556,7 @@ describe("TaskCard", () => {
 
 ---
 
-## ⚠️ 注意事項
+## 注意事項
 
 ### やってはいけないこと
 
@@ -628,7 +653,7 @@ export default async function TasksPage() {
 // - インタラクティブな操作が必要
 // - useState, useEffect が使える
 // - ファイルの先頭に 'use client' を追加
-("use client");
+"use client";
 
 export default function TaskForm() {
   const [title, setTitle] = useState("");
@@ -639,4 +664,4 @@ export default function TaskForm() {
 
 ---
 
-**フロントエンド開発時はこのガイドに従ってください！** 🚀
+**フロントエンド開発時はこのガイドに従ってください！**
