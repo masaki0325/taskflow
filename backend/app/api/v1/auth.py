@@ -44,11 +44,16 @@ def get_current_user(
         2. JWTをデコード・検証
            → 署名の検証、有効期限チェック
 
-        3. トークンから email を取得
+        3. トークンタイプの確認
+           → type="access" であることを検証（Refresh Tokenは拒否）
 
-        4. DBからユーザーを検索
+        4. トークンから email を取得
 
-        5. ユーザーを返す
+        5. DBからユーザーを検索
+
+        6. アカウントが有効かチェック
+
+        7. ユーザーを返す
 
     使用例:
         @router.get("/protected")
@@ -61,8 +66,13 @@ def get_current_user(
         Headers: Authorization: Bearer <access_token>
 
     Raises:
-        HTTPException 401: トークンが無効、期限切れ、またはユーザーが存在しない場合
+        HTTPException 401: トークンが無効、期限切れ、タイプが不正、またはユーザーが存在しない場合
         HTTPException 403: アカウントが無効な場合
+
+    セキュリティ:
+        - Access Token（15分有効）のみを受け入れる
+        - Refresh Token（7日有効）での認証は拒否される
+        - これにより、トークンの短命設計が機能し、セキュリティが向上
     """
     # ①HTTPヘッダーから Bearer トークンを取得
     # credentials.credentials: "eyJhbGci..." (Bearerは除かれる)
@@ -78,7 +88,14 @@ def get_current_user(
             detail="Invalid or expired token",
         ) from None
 
-    # ③トークンから email を取得
+    # ③トークンタイプの確認（RefreshトークンではなくAccessトークンか）
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token type",
+        )
+
+    # ④トークンから email を取得
     # payload = {"sub": "user@example.com", "exp": 1234567890, "type": "access"}
     user_email = payload.get("sub")
     if not user_email:
@@ -86,8 +103,8 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
         )
-    
-    # ④DBからユーザーを検索
+
+    # ⑤DBからユーザーを検索
     user = get_user_by_email(db, user_email)
     if not user:
         raise HTTPException(
@@ -95,14 +112,14 @@ def get_current_user(
             detail="User not found",
         )
 
-    # ⑤アカウントが有効かチェック
+    # ⑥アカウントが有効かチェック
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
         )
 
-    # ⑥ユーザーを返す
+    # ⑦ユーザーを返す
     return user
 
 
