@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -78,7 +78,7 @@ def create_access_token(data: Dict[str, Any]) -> str:
     to_encode = data.copy()  # 元のdataを変更しないようにコピー
 
     # 有効期限を設定（現在時刻 + 15分）
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire, "type": "access"})
 
     # JWTを生成（SECRET_KEYで署名）
@@ -118,7 +118,7 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
     to_encode = data.copy()
 
     # 有効期限を設定（現在時刻 + 7日）
-    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})  # type で区別
 
     encoded_jwt = jwt.encode(
@@ -161,4 +161,4 @@ def decode_token(token: str) -> Dict[str, Any]:
         return payload
     except JWTError as e:
         # トークンが無効、期限切れ、署名が不正など
-        raise JWTError(f"Invalid token: {str(e)}")
+        raise JWTError(f"Invalid token: {str(e)}") from e

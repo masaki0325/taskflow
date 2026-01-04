@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from typing import Dict
+from jose import JWTError
 
 from app.core.database import get_db
 from app.core.security import create_access_token, create_refresh_token, decode_token
-from app.crud.user import create_user, get_user_by_email, get_user_by_id, authenticate_user
+from app.crud.user import create_user, get_user_by_email, authenticate_user
 from app.schemas.user import UserCreate, UserResponse
 from app.models.user import User
 
@@ -70,12 +71,12 @@ def get_current_user(
     # ②JWTをデコード・検証
     try:
         payload = decode_token(token)  # 署名検証 + 有効期限チェック
-    except Exception:
+    except JWTError:
         # トークンが無効または期限切れ
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
-        )
+        ) from None
 
     # ③トークンから email を取得
     # payload = {"sub": "user@example.com", "exp": 1234567890, "type": "access"}
@@ -247,14 +248,14 @@ def refresh(
         HTTPException: Refresh Tokenが無効または期限切れの場合
     """
     token = credentials.credentials
-    
+
     try:
         payload = decode_token(token)
-    except Exception:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
-        )
+        ) from None
     
     # トークンタイプの確認（AccessトークンではなくRefreshトークンか）
     if payload.get("type") != "refresh":
