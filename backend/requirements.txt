@@ -1,5 +1,5 @@
 # FastAPI
-fastapi==0.109.0              # Webフレームワーク本体
+fastapi==0.115.5              # Webフレームワーク本体（CVE-2024-24762対応）
 uvicorn[standard]==0.27.0     # FastAPIを動かすASGIサーバー
 
 # Database
@@ -13,10 +13,10 @@ pydantic-settings==2.1.0      # 環境変数を読み込むための拡張
 email-validator==2.1.0        # メールアドレス形式の検証
 
 # Authentication
-python-jose[cryptography]==3.3.0  # JWT（JSON Web Token）の生成・検証
+python-jose[cryptography]==3.5.0  # JWT（JSON Web Token）の生成・検証（脆弱性修正）
 passlib[bcrypt]==1.7.4            # パスワードハッシュ化（bcryptアルゴリズム）
 bcrypt==4.1.3                     # bcrypt 5.xは passlib 1.7.4 と互換性なし
-python-multipart==0.0.6           # フォームデータのパース（ファイルアップロード対応）
+python-multipart==0.0.21          # フォームデータのパース（ReDoS脆弱性修正）
 
 # Redis (for session/cache)
 redis==5.0.1                  # セッション・キャッシュ管理用
