@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from sqladmin import Admin, ModelView
 
 from app.core.config import settings
 from app.core.database import engine, Base
+from app.models.user import User
 
 
 # アプリケーション起動時・終了時の処理
@@ -80,3 +82,24 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 
 # TODO: タスクAPIルーターを追加
 # app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["Tasks"])
+
+
+# ===============================================
+# 管理画面（SQLAdmin）
+# ===============================================
+
+# SQLAdmin の初期化
+admin = Admin(app, engine, title="TaskFlow 管理画面")
+
+
+# ユーザー管理画面
+class UserAdmin(ModelView, model=User):
+    # 一覧に表示するカラム
+    column_list = [User.id, User.email, User.is_active, User.is_superuser, User.created_at]
+
+    # パスワードハッシュだけ非表示（セキュリティ対策）
+    form_excluded_columns = [User.hashed_password]
+
+
+# 管理画面に登録
+admin.add_view(UserAdmin)

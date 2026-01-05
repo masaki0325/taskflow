@@ -21,6 +21,9 @@ python-multipart==0.0.21          # フォームデータのパース（ReDoS脆
 # Redis (for session/cache)
 redis==5.0.1                  # セッション・キャッシュ管理用
 
+# Admin Panel
+sqladmin==0.16.1              # FastAPI用の管理画面
+
 # Testing
 pytest==7.4.4                 # テストフレームワーク
 httpx==0.26.0                 # HTTPクライアント（APIテスト用）
