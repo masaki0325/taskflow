@@ -87,6 +87,10 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 # ===============================================
 # 管理画面（SQLAdmin）
 # ===============================================
+# TODO: 本番環境デプロイ前に認証を追加する必要がある
+#       - AuthenticationBackend を実装してログイン機能を追加
+#       - または環境変数で開発環境のみ有効化（settings.ENVIRONMENT == "development"）
+#       現在は開発用途のため認証なし
 
 # SQLAdmin の初期化
 admin = Admin(app, engine, title="TaskFlow 管理画面")
