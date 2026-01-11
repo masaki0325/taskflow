@@ -77,9 +77,21 @@ pip install -r requirements.txt
 
 ## コード規約の重要ポイント
 
-### 必須: PDCA開発フロー
+### 必須: PDCA開発フロー（ブランチ運用）
 
 **すべての開発タスクは以下のPDCAサイクルに従うこと:**
+
+#### 0. 事前準備: ブランチ作成（必須）
+```bash
+# 必ず新しいブランチを作成してから作業開始
+git checkout -b feature/機能名
+# 例: git checkout -b feature/task-crud
+```
+
+**重要:**
+- mainブランチで直接作業しない
+- 1機能 = 1ブランチ
+- ブランチ名は `feature/`, `fix/`, `chore/` などのプレフィックスを使用
 
 #### 1. Plan（計画）
 ```
@@ -124,33 +136,57 @@ Task tool with:
 - Critical/High の問題がないか確認
 ```
 
-#### 4. Act（改善・報告）
+#### 4. Act（改善・コミット・PR作成）
 ```
-- レビュー結果をユーザーに報告
-- Critical の問題がある場合: 即座に修正してから次へ
-- 問題なし/軽微な問題のみ: ユーザーに報告して次のステップへ
-- コミット・PR作成前には必ずレビュー実施
+1. レビュー結果をユーザーに報告
+2. Critical の問題がある場合: 即座に修正
+3. 問題なし/軽微な問題のみ: コミット実施
+   - 変更内容ごとに分けてコミット（1コミット = 1つの論理的な変更）
+4. プルリクエスト作成（gh pr create）
+5. PR URLをユーザーに報告
 ```
 
-**フロー例:**
+**コミット・PR作成例:**
+```bash
+# 複数の変更がある場合は分けてコミット
+git add backend/app/models/task.py backend/app/schemas/task.py
+git commit -m "feat: Add Task model and schemas"
+
+git add backend/app/api/v1/tasks.py backend/app/crud/task.py
+git commit -m "feat: Add Task CRUD API endpoints"
+
+# プルリクエスト作成
+gh pr create --title "タスクCRUD機能の実装" --body "..."
+```
+
+**完全なフロー例:**
 ```
 1. ユーザー「タスクCRUD機能を実装して」
    ↓
-2. TodoWriteで計画を立てる
+2. ブランチ作成: git checkout -b feature/task-crud
    ↓
-3. Taskツールでサブエージェントを起動（実装を委譲）
+3. TodoWriteで計画を立てる
    ↓
-4. サブエージェント完了後、`/local-review` を実行
+4. Taskツールでサブエージェントを起動（実装を委譲）
    ↓
-5. レビュー結果を確認・報告
+5. サブエージェント完了後、`/local-review` を実行
    ↓
-6. 問題があれば修正、なければ次のタスクへ
+6. レビュー結果を確認・報告
+   ↓
+7. 問題があれば修正、なければコミット
+   ↓
+8. プルリクエスト作成 → PR URLを報告
+   ↓
+9. ユーザーがレビュー・マージ
 ```
 
 **重要な注意点:**
+- **必ずブランチを切ってから作業開始**（mainで直接作業しない）
 - サブエージェントには明確な指示を与える（セキュリティ要件、規約への準拠を明記）
 - 複数の機能を実装する場合は、機能ごとにサブエージェントを分けて起動
 - レビューはスキップせず必ず実行すること
+- **コミット後は必ずプルリクエストを作成**
+- 1機能の実装完了 = 1プルリクエスト
 
 ### バックエンド（FastAPI）
 
