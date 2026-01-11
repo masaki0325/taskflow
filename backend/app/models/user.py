@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
@@ -74,6 +75,14 @@ class User(Base):
         onupdate=func.now(),        # 更新時に現在時刻を自動更新
         nullable=False
     )
+
+    # ===============================================
+    # リレーション
+    # ===============================================
+
+    # このユーザーが持つタスク一覧（1対多）
+    # 使用例: user.tasks でユーザーの全タスクにアクセス可能
+    tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
 
     # ===============================================
     # デバッグ用の文字列表現
