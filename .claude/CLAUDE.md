@@ -1,133 +1,280 @@
-# TaskFlow プロジェクト - Claude 開発ガイド
+# CLAUDE.md
 
-このファイルは、TaskFlow プロジェクトでの開発時にClaude Codeが従うべき全体的なルールと指針を定義します。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
 
 ## プロジェクト概要
 
-### プロジェクト名
-**TaskFlow** - チーム・個人向けタスク管理SaaS
+**TaskFlow** - フルスタックタスク管理SaaS（ポートフォリオプロジェクト）
 
-### 目的
-フルスタック開発力を証明するポートフォリオプロジェクト
-- Web（Next.js）+ Mobile（Flutter）+ Backend（FastAPI）+ Infrastructure（AWS CDK）
-- 本番運用レベルのコード品質
-- セキュアなアーキテクチャ設計
-- スケーラブルなインフラ構築
+### 技術スタック構成
 
-### 技術スタック全体図
+```
+Frontend: Next.js 15 + TypeScript + TailwindCSS + shadcn/ui
+Backend:  FastAPI + Python 3.12 + SQLAlchemy 2.0 + Alembic
+Database: PostgreSQL 15 + Redis 7
+Infra:    AWS CDK + Docker
+```
 
-```text
-┌─────────────────────────────────────────────────────┐
-│                   クライアント                       │
-├──────────────────────┬──────────────────────────────┤
-│  Web (Next.js 15)    │  Mobile (Flutter 3.x)        │
-│  - TypeScript        │  - Dart                      │
-│  - TailwindCSS       │  - Riverpod                  │
-│  - shadcn/ui         │  - Material Design           │
-└──────────┬───────────┴─────────────┬────────────────┘
-           │                         │
-           └─────────┬───────────────┘
-                     │ REST API
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│           Backend (FastAPI + Python 3.12)           │
-│  - FastAPI (API Framework)                          │
-│  - SQLAlchemy 2.0 (ORM)                             │
-│  - Alembic (マイグレーション)                        │
-│  - Pydantic (バリデーション)                         │
-└──────────┬──────────────────────────┬───────────────┘
-           │                          │
-           ▼                          ▼
-┌─────────────────────┐    ┌─────────────────────────┐
-│ PostgreSQL 15       │    │ Redis 7                 │
-│ (メインDB)          │    │ (キャッシュ/セッション)  │
-└─────────────────────┘    └─────────────────────────┘
-           │
-           ▼
-┌─────────────────────────────────────────────────────┐
-│              AWS Infrastructure (CDK)               │
-│  - ECS Fargate (コンテナ実行)                        │
-│  - RDS (PostgreSQL)                                 │
-│  - ElastiCache (Redis)                              │
-│  - S3 (ファイル保存)                                 │
-│  - CloudFront (CDN)                                 │
-└─────────────────────────────────────────────────────┘
+### アーキテクチャの原則
+
+- **セキュリティファースト**: SQL injection, XSS, CSRF対策を必須とする
+- **型安全性**: TypeScript/Python共に型ヒントを必ず使用
+- **品質優先**: 保守可能なコードを書く（動けば良いではない）
+- **本番運用レベル**: ポートフォリオだが本番品質を目指す
+
+---
+
+## 開発コマンド
+
+### 環境起動・停止
+
+```bash
+# 全サービス起動（PostgreSQL + Redis + Backend + Frontend）
+docker compose up -d
+
+# ログ確認
+docker compose logs -f backend
+docker compose logs -f
+
+# 停止
+docker compose down
+```
+
+### バックエンド開発
+
+```bash
+# コンテナ内でコマンド実行
+docker compose exec backend <command>
+
+# データベースマイグレーション
+docker compose exec backend alembic revision --autogenerate -m "Add tasks table"
+docker compose exec backend alembic upgrade head
+docker compose exec backend alembic downgrade -1
+
+# テスト実行
+docker compose exec backend pytest
+docker compose exec backend pytest app/tests/test_auth.py -v
+docker compose exec backend pytest -k "test_login"
+
+# Python環境（ローカル開発時）
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### アクセスURL
+
+- **Backend API**: http://localhost:8000
+- **API Docs (Swagger)**: http://localhost:8000/docs
+- **Admin Panel**: http://localhost:8000/admin
+- **Frontend**: http://localhost:3000
+- **Health Check**: http://localhost:8000/health
+
+---
+
+## コード規約の重要ポイント
+
+### 必須: PDCA開発フロー
+
+**すべての開発タスクは以下のPDCAサイクルに従うこと:**
+
+#### 1. Plan（計画）
+```
+- TodoWriteツールでタスクを細分化・計画
+- 実装方針を明確にする
+- 必要に応じてユーザーに確認
+```
+
+#### 2. Do（実行）
+```
+- Taskツールでサブエージェント（subagent_type: "general-purpose"）を起動
+- サブエージェントに実装を委譲
+- サブエージェントが自律的にコードを実装
+```
+
+**サブエージェントの使い方:**
+```python
+# 例: タスクCRUD機能の実装
+Task tool with:
+  subagent_type: "general-purpose"
+  description: "Implement task CRUD"
+  prompt: """
+  タスクCRUD機能を実装してください:
+  1. app/models/task.py でTaskモデルを作成
+  2. app/schemas/task.py でPydanticスキーマを作成
+  3. app/crud/task.py でCRUD操作を実装
+  4. app/api/v1/tasks.py でAPIエンドポイントを作成
+  5. main.pyにルーターを登録
+
+  セキュリティ要件:
+  - 所有者チェック必須（current_user.id == task.owner_id）
+  - SQLAlchemy ORMを使用（生SQL禁止）
+
+  backend.mdの規約に従ってください。
+  """
+```
+
+#### 3. Check（評価）
+```
+- サブエージェント完了後、必ず `/local-review` スキルを実行
+- コードレビュー結果を確認
+- Critical/High の問題がないか確認
+```
+
+#### 4. Act（改善・報告）
+```
+- レビュー結果をユーザーに報告
+- Critical の問題がある場合: 即座に修正してから次へ
+- 問題なし/軽微な問題のみ: ユーザーに報告して次のステップへ
+- コミット・PR作成前には必ずレビュー実施
+```
+
+**フロー例:**
+```
+1. ユーザー「タスクCRUD機能を実装して」
+   ↓
+2. TodoWriteで計画を立てる
+   ↓
+3. Taskツールでサブエージェントを起動（実装を委譲）
+   ↓
+4. サブエージェント完了後、`/local-review` を実行
+   ↓
+5. レビュー結果を確認・報告
+   ↓
+6. 問題があれば修正、なければ次のタスクへ
+```
+
+**重要な注意点:**
+- サブエージェントには明確な指示を与える（セキュリティ要件、規約への準拠を明記）
+- 複数の機能を実装する場合は、機能ごとにサブエージェントを分けて起動
+- レビューはスキップせず必ず実行すること
+
+### バックエンド（FastAPI）
+
+詳細は [backend.md](./backend.md) 参照。
+
+**ディレクトリ構成:**
+```
+backend/app/
+├── main.py           # FastAPIエントリーポイント
+├── core/             # config, database, security
+├── models/           # SQLAlchemyモデル（テーブル定義）
+├── schemas/          # Pydanticスキーマ（バリデーション）
+├── api/v1/           # APIルート
+├── crud/             # CRUD操作
+└── tests/            # pytest テスト
+```
+
+**セキュリティ必須事項:**
+- SQLAlchemy ORMを使用（生SQLは禁止 → SQL injection防止）
+- パスワードは必ずbcryptでハッシュ化（平文保存は絶対禁止）
+- JWTトークンは`Depends(get_current_user)`で必ず検証
+- 所有者チェックを実装（他人のデータにアクセス不可）
+
+**Pydantic V2を使用:**
+```python
+# ✅ 正しい
+from pydantic import BaseModel, ConfigDict
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    model_config = ConfigDict(from_attributes=True)
+
+# ❌ 間違い（V1の古い形式）
+class Config:
+    from_attributes = True
+```
+
+**型ヒント必須:**
+```python
+# ✅
+def get_user(db: Session, user_id: int) -> Optional[User]:
+    return db.query(User).filter(User.id == user_id).first()
+
+# ❌
+def get_user(db, user_id):
+    return db.query(User).filter(User.id == user_id).first()
+```
+
+### フロントエンド（Next.js）
+
+詳細は [frontend.md](./frontend.md) 参照。
+
+**重要な型規約:**
+- ID型は`number`で統一（バックエンドのintと一致）
+- `any`型は使用禁止
+- TypeScript型定義を必ず使用
+
+**セキュリティ:**
+- `dangerouslySetInnerHTML`は使用禁止（XSS防止）
+- 環境変数は`NEXT_PUBLIC_`プレフィックス必須（クライアント側に露出する場合）
+
+**Server Component vs Client Component:**
+```typescript
+// Server Component（デフォルト） - データフェッチに最適
+export default async function TasksPage() {
+  const tasks = await getTasks();
+  return <TaskList tasks={tasks} />;
+}
+
+// Client Component - インタラクティブな操作
+"use client";
+export default function TaskForm() {
+  const [title, setTitle] = useState("");
+  return <input value={title} onChange={(e) => setTitle(e.target.value)} />;
+}
 ```
 
 ---
 
-## 全般的なコーディング方針
+## API設計規則
 
-### 開発原則
-- **品質優先**: 動くコードではなく、保守可能なコードを書く
-- **セキュリティファースト**: 脆弱性を作らない（SQL injection, XSS, CSRF等）
-- **型安全**: TypeScript, Python共に型ヒントを必ず使用
-- **ドキュメント**: 複雑なロジックにはコメントを残す
-- **テスト**: 重要な機能には必ずテストを書く
+RESTful API規則:
+```
+GET    /api/v1/tasks          タスク一覧取得
+GET    /api/v1/tasks/{id}     タスク詳細取得
+POST   /api/v1/tasks          タスク作成
+PUT    /api/v1/tasks/{id}     タスク更新
+DELETE /api/v1/tasks/{id}     タスク削除
+```
 
-### 必須: コードレビューフロー
-
-**コードを実装・修正した後は、必ず以下の手順を実行すること:**
-
-1. **`/local-review` スキルを実行**してコードレビューを行う
-2. レビュー結果をユーザーに報告する
-3. 重大な問題（Critical）がある場合は、修正してから次に進む
-4. 問題がない、または軽微な問題のみの場合は、ユーザーに通知して次のステップへ
-
-**レビュー観点:**
-- セキュリティ脆弱性（SQL injection, XSS, CSRF, 認証/認可の不備）
-- コード品質（可読性、保守性、DRY原則、命名規則）
-- パフォーマンス（N+1クエリ、不要なループ、メモリリーク）
-- プロジェクト規約への準拠（このCLAUDE.mdの内容）
-- テストの有無と品質
-
-**重要:** ユーザーがコミットやPRの作成を指示した場合は、必ずコードレビューを実行してから実施すること。
-
-### 詳細なコーディング規約
-
-各技術スタックの詳細なコーディング規約は以下を参照：
-
-- **バックエンド（FastAPI）**: [backend.md](./backend.md)
-- **フロントエンド（Next.js）**: [frontend.md](./frontend.md)
+**ステータスコード:**
+- `200 OK`: 成功（GET, PUT）
+- `201 Created`: 作成成功（POST）
+- `204 No Content`: 削除成功（DELETE）
+- `400 Bad Request`: バリデーションエラー
+- `401 Unauthorized`: 認証エラー
+- `403 Forbidden`: 権限エラー
+- `404 Not Found`: リソースが見つからない
+- `500 Internal Error`: サーバーエラー
 
 ---
 
-## セキュリティ要件
+## データベース関連
 
-### 必須のセキュリティ対策
+### マイグレーション作成フロー
 
-```text
-┌─────────────────────────────────────────────┐
-│  脅威               対策                     │
-├─────────────────────────────────────────────┤
-│  SQL Injection    → SQLAlchemy ORM使用      │
-│                     生SQLは使わない          │
-├─────────────────────────────────────────────┤
-│  XSS              → React自動エスケープ     │
-│                     dangerouslySetInnerHTML禁止│
-├─────────────────────────────────────────────┤
-│  CSRF             → SameSite Cookie設定     │
-│                     CORSホワイトリスト       │
-├─────────────────────────────────────────────┤
-│  認証             → JWT + Refresh Token     │
-│                     bcryptでパスワードハッシュ│
-├─────────────────────────────────────────────┤
-│  機密情報         → .envで管理              │
-│                     GitHubにpushしない       │
-└─────────────────────────────────────────────┘
+1. `app/models/` でSQLAlchemyモデルを定義
+2. `app/models/__init__.py` にインポート追加（重要！）
+3. Alembicマイグレーション生成:
+   ```bash
+   docker compose exec backend alembic revision --autogenerate -m "Add tasks table"
+   ```
+4. 生成されたマイグレーションファイルを確認（`backend/alembic/versions/`）
+5. マイグレーション適用:
+   ```bash
+   docker compose exec backend alembic upgrade head
+   ```
+
+### 認証トークン設計
+
 ```
-
-### パスワード要件
-- 最小8文字
-- 英大文字・小文字・数字を含む
-- bcryptでハッシュ化（ソルト自動生成）
-- 平文保存は絶対禁止
-
-### JWT トークン管理
-```text
 Access Token:  有効期限15分（短命）
-Refresh Token: 有効期限7日（長命）
-               Redis/DBで管理、ログアウト時に無効化
+Refresh Token: 有効期限7日（長命、Redis/DBで管理）
 ```
 
 ---
@@ -136,23 +283,22 @@ Refresh Token: 有効期限7日（長命）
 
 ### ブランチ戦略
 
-```text
+```
 main
-  │
-  ├── feature/auth-api          ← 認証API実装
-  ├── feature/task-crud          ← タスクCRUD実装
-  ├── feature/file-upload        ← ファイルアップロード
-  └── feature/notifications      ← 通知機能
+  ├── feature/auth-api
+  ├── feature/task-crud
+  ├── feature/file-upload
+  └── feature/notifications
 ```
 
-### ブランチ命名規則
-- `feature/認証機能` → `feature/auth-api`
-- `fix/バグ修正` → `fix/task-deletion-bug`
-- `chore/設定変更` → `chore/update-docker-config`
+**ブランチ命名規則:**
+- `feature/auth-api` - 新機能
+- `fix/task-deletion-bug` - バグ修正
+- `chore/update-docker-config` - 設定変更
 
 ### コミットメッセージ規則
 
-```text
+```
 <type>: <subject>
 
 <body>
@@ -171,7 +317,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 - `test`: テスト追加
 
 **例:**
-```text
+```
 feat: Implement user authentication with JWT
 
 - Add login/register endpoints
@@ -186,82 +332,61 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 
 ---
 
-## 開発時の注意事項
-
-### 環境変数の管理
+## 環境変数管理
 
 ```bash
-# ❌ 絶対にやってはいけないこと
-git add .env  # 機密情報を含む.envをコミット
+# ❌ 絶対にやってはいけない
+git add .env
 
 # ✅ 正しい方法
 # .env.example をコミット（サンプル値のみ）
 # .env は .gitignore に追加済み
 ```
 
-### API設計
-
-```text
-RESTful API設計原則:
-
-GET    /api/v1/tasks          タスク一覧取得
-GET    /api/v1/tasks/{id}     タスク詳細取得
-POST   /api/v1/tasks          タスク作成
-PUT    /api/v1/tasks/{id}     タスク更新
-DELETE /api/v1/tasks/{id}     タスク削除
-
-ステータスコード:
-200 OK              成功（GET, PUT）
-201 Created         作成成功（POST）
-204 No Content      削除成功（DELETE）
-400 Bad Request     バリデーションエラー
-401 Unauthorized    認証エラー
-403 Forbidden       権限エラー
-404 Not Found       リソースが見つからない
-500 Internal Error  サーバーエラー
+**本番環境のSECRET_KEY生成:**
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 ---
 
-## 開発フロー
+## プロジェクト固有の重要事項
 
-### 新機能開発の流れ
+### SQLAlchemy 2.0を使用
 
-```text
-1. ブランチ作成
-   git checkout -b feature/new-feature
+- 新しいクエリスタイルを使用（`select()`ベース推奨）
+- `Base.metadata.create_all()`はdevelopment環境のみ（本番はAlembic使用）
 
-2. 実装
-   ├─ バックエンド: backend.md を参照
-   └─ フロントエンド: frontend.md を参照
+### FastAPI依存性注入パターン
 
-3. 動作確認
-   docker compose up
-   http://localhost:3000
-   http://localhost:8000/docs
-
-4. CodeRabbitのローカルレビューを確認
-   Cursorのextensionで自動レビュー
-
-5. コミット & プッシュ
-   git add .
-   git commit -m "feat: Add new feature"
-   git push -u origin feature/new-feature
-
-6. プルリクエスト作成
-   CodeRabbitが自動レビュー（日本語設定済み）
+```python
+@router.get("/tasks/{task_id}")
+def get_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 所有者チェック必須
+    task = db.query(Task).filter(
+        Task.id == task_id,
+        Task.owner_id == current_user.id
+    ).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
 ```
 
----
+### 管理画面（SQLAdmin）
 
-## 参考資料
-
-- [FastAPI公式ドキュメント](https://fastapi.tiangolo.com/)
-- [Next.js公式ドキュメント](https://nextjs.org/docs)
-- [SQLAlchemy公式ドキュメント](https://docs.sqlalchemy.org/)
-- [Pydantic公式ドキュメント](https://docs.pydantic.dev/)
-- [shadcn/ui公式ドキュメント](https://ui.shadcn.com/)
+- 開発環境では認証なしで使用可能
+- **本番デプロイ前に認証を追加する必要がある**（TODO: `app/main.py`参照）
 
 ---
 
-**このガイドに従って、高品質なコードを書きましょう！**
+## 参考リンク
+
+- [FastAPI公式](https://fastapi.tiangolo.com/)
+- [Next.js公式](https://nextjs.org/docs)
+- [SQLAlchemy公式](https://docs.sqlalchemy.org/)
+- [Pydantic公式](https://docs.pydantic.dev/)
+- [shadcn/ui公式](https://ui.shadcn.com/)
