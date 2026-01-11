@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude Code の作業が完了しました。確認してください。\" with title \"✅ TaskFlow - 作業完了\" sound name \"Glass\"'"
+          }
+        ]
+      }
+    ]
+  }
+}
